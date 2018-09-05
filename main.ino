@@ -7,7 +7,7 @@
 #define RXPIN 10
 #define TXPIN 11
 
-#define DELAY 500
+#define DELAY 100
 
 SoftwareSerial BTSerial(RXPIN, TXPIN);
 
@@ -35,7 +35,8 @@ void loop() {
     if (response_available()) {
         openvrt_message_t *msg = make_message_from_command();
         if (is_valid_message(msg)) {
-            Serial.println("Valid.");
+            Serial.print("Valid. Id: ");
+            Serial.println(msg->id);
         } else {
             Serial.println("Invalid.");
         }

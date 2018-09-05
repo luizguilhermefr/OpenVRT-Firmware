@@ -2,6 +2,7 @@
 
 /.idea/
 *.iml
+/cmake-build-debug/
 
 # Prerequisites
 *.d
