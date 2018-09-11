@@ -54,15 +54,15 @@ bool is_valid_opcode(char opcode)
 bool is_valid_message(openvrt_message_t *msg)
 {
   if (!is_valid_signature(msg->signature)) {
-     return false;
+    return false;
   }
 
   if (!is_valid_version(msg->major_ver)) {
-     return false;
+    return false;
   }
 
   if (!is_valid_opcode(msg->opcode)) {
-     return false;
+    return false;
   }
 
   return true;

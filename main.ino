@@ -50,7 +50,14 @@ void acknowledge(openvrt_message_t *msg)
 
 void refuse(openvrt_message_t *msg)
 {
-
+  openvrt_message_t res;
+  strcpy(res.signature, SIGNATURE);
+  res.opcode = REFUSE_OP;
+  res.major_ver = MAJOR_V;
+  res.minor_ver = MINOR_V;
+  res.id = next_id();
+  sprintf(res.data, "%08lu", msg->id);
+  send(&res);
 }
 
 void print(openvrt_message_t *msg)
@@ -73,7 +80,9 @@ void loop()
     openvrt_message_t *msg = receive();
     if (is_valid_message(msg)) {
       acknowledge(msg);
+      print(msg);
     } else {
+      refuse(msg);
       Serial.println("Invalid message.");
     }
   }
