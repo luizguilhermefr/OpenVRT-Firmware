@@ -1,6 +1,5 @@
 #include <SoftwareSerial.h>
 #include "openvrt.h"
-#include "mbroker.h"
 
 #define BAUD_RATE 9600
 
@@ -38,26 +37,14 @@ void send(openvrt_message_t *msg)
 
 void acknowledge(openvrt_message_t *msg)
 {
-  openvrt_message_t res;
-  strcpy(res.signature, SIGNATURE);
-  res.opcode = ACK_OP;
-  res.major_ver = MAJOR_V;
-  res.minor_ver = MINOR_V;
-  res.id = next_id();
-  sprintf(res.data, "%08lu", msg->id);
-  send(&res);
+  openvrt_message_t *res = make_ack(msg->id, ACK_OP);
+  send(res);
 }
 
 void refuse(openvrt_message_t *msg)
 {
-  openvrt_message_t res;
-  strcpy(res.signature, SIGNATURE);
-  res.opcode = REFUSE_OP;
-  res.major_ver = MAJOR_V;
-  res.minor_ver = MINOR_V;
-  res.id = next_id();
-  sprintf(res.data, "%08lu", msg->id);
-  send(&res);
+  openvrt_message_t *res = make_ack(msg->id, REFUSE_OP);
+  send(res);
 }
 
 void print(openvrt_message_t *msg)
@@ -83,7 +70,6 @@ void loop()
       print(msg);
     } else {
       refuse(msg);
-      Serial.println("Invalid message.");
     }
   }
   delay(DELAY);

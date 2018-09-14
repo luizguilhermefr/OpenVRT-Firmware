@@ -2,6 +2,7 @@
 #define OPENVRT_FIRMWARE_OPENVRT_H
 
 #include "util.h"
+#include "mbroker.h"
 
 #define MESSAGE_LEN 24
 #define SIGNATURE_LEN 7
@@ -20,9 +21,9 @@
 typedef struct message
 {
   char signature[SIGNATURE_LEN];
-  unsigned short major_ver;
-  unsigned short minor_ver;
-  unsigned long id;
+  uint16_t major_ver;
+  uint16_t minor_ver;
+  uint32_t id;
   char opcode;
   char data[DATA_LEN];
 } __attribute__((packed)) openvrt_message_t;
@@ -32,7 +33,7 @@ bool is_valid_signature(char signature[SIGNATURE_LEN])
   return strncmp(SIGNATURE, signature, SIGNATURE_LEN) == 0x0;
 }
 
-bool is_valid_version(short major)
+bool is_valid_version(uint16_t major)
 {
   return major == MAJOR_V;
 }
@@ -104,6 +105,18 @@ char *message_as_string(openvrt_message_t *msg)
       data
   );
   return buf;
+}
+
+openvrt_message_t *make_ack(uint32_t target_id, char opcode = ACK_OP)
+{
+  openvrt_message_t *res = (openvrt_message_t *) malloc(sizeof(openvrt_message_t));
+  strcpy(res->signature, SIGNATURE);
+  res->opcode = opcode == ACK_OP ? ACK_OP : REFUSE_OP;
+  res->major_ver = MAJOR_V;
+  res->minor_ver = MINOR_V;
+  res->id = next_id();
+  sprintf(res->data, "%08lu", target_id);
+  return res;
 }
 
 #endif //OPENVRT_FIRMWARE_OPENVRT_H
