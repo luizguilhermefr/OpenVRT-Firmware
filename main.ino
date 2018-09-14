@@ -39,12 +39,14 @@ void acknowledge(openvrt_message_t *msg)
 {
   openvrt_message_t *res = make_ack(msg->id, ACK_OP);
   send(res);
+  free(res);
 }
 
 void refuse(openvrt_message_t *msg)
 {
   openvrt_message_t *res = make_ack(msg->id, REFUSE_OP);
   send(res);
+  free(res);
 }
 
 void print(openvrt_message_t *msg)
