@@ -6,19 +6,17 @@
 
 #define BTSerial Serial1
 
-#define ANALOG_VELOCITY_PIN A8
+#define ANALOG_SPEED_PIN A8
 
-#define ANALOG_VELOCITY_MIN 0
+#define ANALOG_MAX_SPEED 1000
 
-#define ANALOG_VELOCITY_MAX 10000
+#define SPEED_MAX_KM_H 40.0
 
-#define VELOCITY_MAX 40.0
-
-#define DELAY 100
+#define DELAY 500
 
 double current_rate;
 
-double current_velocity;
+double current_speed;
 
 char current_measurement;
 
@@ -99,18 +97,19 @@ bool take_action(openvrt_message_t *msg)
   }
 }
 
-void next_velocity()
+void next_speed()
 {
-  int sensorValue = analogRead(ANALOG_VELOCITY_PIN);
-  current_velocity = (sensorValue / (double) ANALOG_VELOCITY_MAX) * VELOCITY_MAX;
+  int sensorValue = min(analogRead(ANALOG_SPEED_PIN), ANALOG_MAX_SPEED);
+  current_speed = (sensorValue / (double) ANALOG_MAX_SPEED) * SPEED_MAX_KM_H;
 }
 
 void setup()
 {
   Serial.begin(BAUD_RATE);
   BTSerial.begin(BAUD_RATE);
+  setup_treadmill();
   current_rate = 0.0;
-  current_velocity = 0.0;
+  current_speed = 0.0;
   current_measurement = MEASUREMENT_K_HA;
 }
 
@@ -122,8 +121,8 @@ void loop()
       switch (msg->opcode) {
         case RATE_SET:
           next_rate(msg->data);
-          Serial.print("New rate: "); // TODO: Remove print
-          Serial.println(current_rate); // TODO: Remove print
+//        Serial.print("New rate: "); // TODO: Remove print
+//        Serial.println(current_rate); // TODO: Remove print
           acknowledge(msg);
           break;
         case MEASURE_SET:
@@ -137,8 +136,9 @@ void loop()
       refuse(msg);
     }
   }
-  next_velocity();
-  Serial.print("New velocity: "); // TODO: Remove print
-  Serial.println(current_velocity); // TODO: Remove print
+  next_speed();
+  next_tick(current_speed);
+//Serial.print("New velocity: "); // TODO: Remove print
+//Serial.println(current_velocity); // TODO: Remove print
   delay(DELAY);
 }
