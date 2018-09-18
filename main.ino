@@ -4,15 +4,21 @@
 
 #define BAUD_RATE 9600
 
-#define HC05PIN 13
-#define RXPIN 10
-#define TXPIN 11
+#define BTSerial Serial1
+
+#define ANALOG_VELOCITY_PIN A8
+
+#define ANALOG_VELOCITY_MIN 0
+
+#define ANALOG_VELOCITY_MAX 10000
+
+#define VELOCITY_MAX 40.0
 
 #define DELAY 100
 
-SoftwareSerial BTSerial(RXPIN, TXPIN);
-
 double current_rate;
+
+double current_velocity;
 
 char current_measurement;
 
@@ -73,6 +79,7 @@ bool next_rate(char data[DATA_LEN])
 
 bool next_measurement(char data[DATA_LEN])
 {
+  // TODO: Parse actual measurement
   current_measurement = MEASUREMENT_K_HA;
 
   return true;
@@ -92,12 +99,18 @@ bool take_action(openvrt_message_t *msg)
   }
 }
 
+void next_velocity()
+{
+  int sensorValue = analogRead(ANALOG_VELOCITY_PIN);
+  current_velocity = (sensorValue / (double) ANALOG_VELOCITY_MAX) * VELOCITY_MAX;
+}
+
 void setup()
 {
-  pinMode(HC05PIN, OUTPUT);
   Serial.begin(BAUD_RATE);
   BTSerial.begin(BAUD_RATE);
   current_rate = 0.0;
+  current_velocity = 0.0;
   current_measurement = MEASUREMENT_K_HA;
 }
 
@@ -109,7 +122,8 @@ void loop()
       switch (msg->opcode) {
         case RATE_SET:
           next_rate(msg->data);
-          Serial.println(current_rate);
+          Serial.print("New rate: "); // TODO: Remove print
+          Serial.println(current_rate); // TODO: Remove print
           acknowledge(msg);
           break;
         case MEASURE_SET:
@@ -119,8 +133,12 @@ void loop()
           acknowledge(msg);
       }
     } else {
+      Serial.println("Invalid message..."); // TODO: Remove print
       refuse(msg);
     }
   }
+  next_velocity();
+  Serial.print("New velocity: "); // TODO: Remove print
+  Serial.println(current_velocity); // TODO: Remove print
   delay(DELAY);
 }
