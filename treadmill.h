@@ -9,50 +9,31 @@
 
 #define MAX_SUPPORTED_SPEED_KM_H 40.0
 
-#define MAX_TREADMILL_SPEED 255
+#define MAX_TREADMILL_SPEED_PWM 255
 
 AF_DCMotor motor(MOTOR_PORT);
+
+static uint8_t current_speed_pwm;
 
 void setup_treadmill()
 {
   motor.setSpeed(0);
-  motor.run(RELEASE);
+  motor.run(FORWARD);
+  current_speed_pwm = 0;
 }
 
 void next_tick(double speed)
 {
-  int treadmill_speed = (min(speed, MAX_SUPPORTED_SPEED_KM_H) / MAX_SUPPORTED_SPEED_KM_H)
-      * MAX_TREADMILL_SPEED;
+  uint8_t desired_speed_pwm = (min(speed, MAX_SUPPORTED_SPEED_KM_H) / MAX_SUPPORTED_SPEED_KM_H)
+      * MAX_TREADMILL_SPEED_PWM;
 
-  motor.run(FORWARD);
-
-  //Begin example
-  uint8_t i;
-
-  for (i=0; i<255; i++) {
-    motor.setSpeed(treadmill_speed);
-    delay(10);
+  if (current_speed_pwm < desired_speed_pwm) {
+    current_speed_pwm++;
+  } else if (current_speed_pwm > desired_speed_pwm) {
+    current_speed_pwm--;
   }
 
-  for (i=255; i!=0; i--) {
-    motor.setSpeed(treadmill_speed);
-    delay(10);
-  }
-
-  motor.run(BACKWARD);
-  for (i=0; i<255; i++) {
-    motor.setSpeed(treadmill_speed);
-    delay(10);
-  }
-
-  for (i=255; i!=0; i--) {
-    motor.setSpeed(treadmill_speed);
-    delay(10);
-  }
-
-
-  motor.run(RELEASE);
-  // End example
+  motor.setSpeed(current_speed_pwm);
 }
 
 #endif //OPENVRT_FIRMWARE_TREADMILL_H

@@ -12,7 +12,7 @@
 
 #define SPEED_MAX_KM_H 40.0
 
-#define DELAY 500
+#define DELAY 10
 
 double current_rate;
 

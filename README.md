@@ -3,6 +3,7 @@
 ## Requirements
 
 - Arduino Mega 2560
+- Adafruit Arduino Shield
 - [Arduino SDK](https://www.arduino.cc/en/Main/Software)
 - [Adafruit Motor Shield library](https://learn.adafruit.com/adafruit-motor-shield/library-install)
 
