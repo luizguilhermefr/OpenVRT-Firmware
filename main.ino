@@ -14,15 +14,19 @@
 
 #define DELAY 10
 
+#define SERIAL_VERBOSE 1
+
 double current_rate;
 
 double current_speed;
 
-char current_measurement;
+char *current_measurement;
 
 bool available()
 {
-  return BTSerial.available() >= MESSAGE_LEN;
+  bool is_available = BTSerial.available() >= MESSAGE_LEN;
+  if (is_available && SERIAL_VERBOSE) Serial.println("MESSAGE RECEIVED.");
+  return is_available;
 }
 
 openvrt_message_t *receive()
@@ -46,6 +50,7 @@ void send(openvrt_message_t *msg)
 
 void acknowledge(openvrt_message_t *msg)
 {
+  if (SERIAL_VERBOSE) Serial.println("EMITTING ACKNOWLEDGEMENT.");
   openvrt_message_t *res = make_ack(msg->id, ACK_OP);
   send(res);
   free(res);
@@ -53,6 +58,7 @@ void acknowledge(openvrt_message_t *msg)
 
 void refuse(openvrt_message_t *msg)
 {
+  if (SERIAL_VERBOSE) Serial.println("EMITTING REFUSAL.");
   openvrt_message_t *res = make_ack(msg->id, REFUSE_OP);
   send(res);
   free(res);
@@ -65,7 +71,7 @@ void print(openvrt_message_t *msg)
   free(message_as_str);
 }
 
-bool next_rate(char data[DATA_LEN])
+void next_rate(char data[DATA_LEN])
 {
   char form[DATA_LEN + 2];
   for (int i = 0; i < DATA_LEN - 2; i++) { form[i] = data[i]; }
@@ -73,28 +79,32 @@ bool next_rate(char data[DATA_LEN])
   for (int i = DATA_LEN - 2; i < DATA_LEN; i++) { form[i + 1] = data[i]; }
   form[DATA_LEN + 2 - 1] = '\0';
   current_rate = strtod((char *) form, NULL);
+  if (SERIAL_VERBOSE) {
+    Serial.print("NEW RATE IS ");
+    Serial.println(current_rate);
+  }
 }
 
 bool next_measurement(char data[DATA_LEN])
 {
-  // TODO: Parse actual measurement
-  current_measurement = MEASUREMENT_K_HA;
-
-  return true;
-}
-
-bool take_action(openvrt_message_t *msg)
-{
-  switch (msg->opcode) {
-    case RATE_SET:
-      return next_rate(msg->data);
-    case MEASURE_SET:
-      return next_measurement(msg->data);
-    case HANDSHAKE:
-    case ACK_OP:
-    case REFUSE_OP:
-      return true;
+  char *desired_measurement = (char *) malloc(sizeof(char) * (DATA_LEN + 1));
+  uint8_t i = 0, n = 0;
+  while (data[i] == '\0') i++;
+  for (; i < DATA_LEN; i++, n++) {
+    desired_measurement[n] = data[i];
   }
+  desired_measurement[n] = '\0';
+
+  if (supported_measurement(desired_measurement)) {
+    current_measurement = desired_measurement;
+    if (SERIAL_VERBOSE) {
+      Serial.print("NEW MEASUREMENT IS ");
+      Serial.println(current_measurement);
+    }
+    return true;
+  }
+
+  return false;
 }
 
 void next_speed()
@@ -110,7 +120,8 @@ void setup()
   setup_treadmill();
   current_rate = 0.0;
   current_speed = 0.0;
-  current_measurement = MEASUREMENT_K_HA;
+  current_measurement = (char *) malloc(sizeof(char) * (DATA_LEN + 1));
+  strcpy(current_measurement, MEASUREMENT_K_HA);
 }
 
 void loop()
@@ -121,8 +132,6 @@ void loop()
       switch (msg->opcode) {
         case RATE_SET:
           next_rate(msg->data);
-//        Serial.print("New rate: "); // TODO: Remove print
-//        Serial.println(current_rate); // TODO: Remove print
           acknowledge(msg);
           break;
         case MEASURE_SET:
@@ -132,13 +141,10 @@ void loop()
           acknowledge(msg);
       }
     } else {
-      Serial.println("Invalid message..."); // TODO: Remove print
       refuse(msg);
     }
   }
   next_speed();
   next_tick(current_speed);
-//Serial.print("New velocity: "); // TODO: Remove print
-//Serial.println(current_velocity); // TODO: Remove print
   delay(DELAY);
 }

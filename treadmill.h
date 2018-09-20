@@ -3,7 +3,7 @@
 
 #include <AFMotor.h>
 
-#define MEASUREMENT_K_HA 0xAA
+#define MEASUREMENT_K_HA "KG_HA"
 
 #define MOTOR_PORT 4
 
@@ -14,6 +14,11 @@
 AF_DCMotor motor(MOTOR_PORT);
 
 static uint8_t current_speed_pwm;
+
+bool supported_measurement(char *measurement)
+{
+  return strcmp(measurement, MEASUREMENT_K_HA) == 0x0;
+}
 
 void setup_treadmill()
 {
