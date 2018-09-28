@@ -20,14 +20,14 @@ bool supported_measurement(char *measurement)
   return strcmp(measurement, MEASUREMENT_K_HA) == 0x0;
 }
 
-void setup_treadmill()
+void actuator_setup()
 {
   motor.setSpeed(0);
   motor.run(FORWARD);
   current_speed_pwm = 0;
 }
 
-void next_tick(double speed)
+void actuator_loop(double speed)
 {
   uint8_t desired_speed_pwm = (min(speed, MAX_SUPPORTED_SPEED_KM_H) / MAX_SUPPORTED_SPEED_KM_H)
       * MAX_TREADMILL_SPEED_PWM;

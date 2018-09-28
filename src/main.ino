@@ -12,9 +12,15 @@
 
 #define SPEED_MAX_KM_H 40.0
 
-#define DELAY 10
-
 #define SERIAL_VERBOSE 1
+
+unsigned long now;
+
+unsigned long last_message_tick;
+
+unsigned long last_speed_tick;
+
+unsigned long last_actuator_tick;
 
 double current_rate;
 
@@ -139,7 +145,7 @@ void setup()
 {
   Serial.begin(BAUD_RATE);
   BTSerial.begin(BAUD_RATE);
-  setup_treadmill();
+  actuator_setup();
   current_rate = 0.0;
   current_speed = 0.0;
   current_measurement = (char *) malloc(sizeof(char) * (DATA_LEN + 1));
@@ -148,8 +154,20 @@ void setup()
 
 void loop()
 {
-  next_message();
-  next_speed();
-  next_tick(current_speed);
-  delay(DELAY);
+  now = millis();
+
+  if (now - last_message_tick > 100) {
+    last_message_tick = now;
+    next_message();
+  }
+
+  if (now - last_speed_tick > 500) {
+    last_speed_tick = now;
+    next_speed();
+  }
+
+  if (now - last_actuator_tick > 5) {
+    last_actuator_tick = now;
+    actuator_loop(current_speed);
+  }
 }
