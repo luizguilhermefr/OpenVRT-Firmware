@@ -113,18 +113,7 @@ void next_speed()
   current_speed = (sensorValue / (double) ANALOG_MAX_SPEED) * SPEED_MAX_KM_H;
 }
 
-void setup()
-{
-  Serial.begin(BAUD_RATE);
-  BTSerial.begin(BAUD_RATE);
-  setup_treadmill();
-  current_rate = 0.0;
-  current_speed = 0.0;
-  current_measurement = (char *) malloc(sizeof(char) * (DATA_LEN + 1));
-  strcpy(current_measurement, MEASUREMENT_K_HA);
-}
-
-void loop()
+void next_message()
 {
   if (available()) {
     openvrt_message_t *msg = receive();
@@ -144,6 +133,22 @@ void loop()
       refuse(msg);
     }
   }
+}
+
+void setup()
+{
+  Serial.begin(BAUD_RATE);
+  BTSerial.begin(BAUD_RATE);
+  setup_treadmill();
+  current_rate = 0.0;
+  current_speed = 0.0;
+  current_measurement = (char *) malloc(sizeof(char) * (DATA_LEN + 1));
+  strcpy(current_measurement, MEASUREMENT_K_HA);
+}
+
+void loop()
+{
+  next_message();
   next_speed();
   next_tick(current_speed);
   delay(DELAY);
