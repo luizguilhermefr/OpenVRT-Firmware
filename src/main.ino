@@ -10,7 +10,7 @@
 
 #define ANALOG_MAX_SPEED 1000
 
-#define SPEED_MAX_KM_H 40.0
+#define SPEED_MAX_M_S 10.0
 
 #define SERIAL_VERBOSE 1
 
@@ -19,12 +19,6 @@ unsigned long now;
 unsigned long last_message_tick;
 
 unsigned long last_speed_tick;
-
-unsigned long last_actuator_tick;
-
-double current_rate;
-
-double current_speed;
 
 char *current_measurement;
 
@@ -84,10 +78,11 @@ void next_rate(char data[DATA_LEN])
   form[DATA_LEN - 2] = '.';
   for (int i = DATA_LEN - 2; i < DATA_LEN; i++) { form[i + 1] = data[i]; }
   form[DATA_LEN + 2 - 1] = '\0';
-  current_rate = strtod((char *) form, NULL);
+  float r = strtod((char *) form, NULL);
+  actuator_set_rate(r);
   if (SERIAL_VERBOSE) {
     Serial.print("NEW RATE IS ");
-    Serial.println(current_rate);
+    Serial.println(r);
   }
 }
 
@@ -116,7 +111,8 @@ bool next_measurement(char data[DATA_LEN])
 void next_speed()
 {
   int sensorValue = min(analogRead(ANALOG_SPEED_PIN), ANALOG_MAX_SPEED);
-  current_speed = (sensorValue / (double) ANALOG_MAX_SPEED) * SPEED_MAX_KM_H;
+  float s = (sensorValue / (double) ANALOG_MAX_SPEED) * SPEED_MAX_M_S;
+  actuator_set_speed(s);
 }
 
 void next_message()
@@ -146,10 +142,9 @@ void setup()
   Serial.begin(BAUD_RATE);
   BTSerial.begin(BAUD_RATE);
   actuator_setup();
-  current_rate = 0.0;
-  current_speed = 0.0;
   current_measurement = (char *) malloc(sizeof(char) * (DATA_LEN + 1));
   strcpy(current_measurement, MEASUREMENT_K_HA);
+  last_speed_tick = last_message_tick = millis();
 }
 
 void loop()
@@ -166,8 +161,5 @@ void loop()
     next_speed();
   }
 
-  if (now - last_actuator_tick > 5) {
-    last_actuator_tick = now;
-    actuator_loop(current_speed);
-  }
+  actuator_loop(now);
 }
