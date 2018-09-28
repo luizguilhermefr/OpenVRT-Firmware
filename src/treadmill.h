@@ -7,6 +7,8 @@
 
 #define MOTOR_PORT 4
 
+#define PROXIMITY_PORT 21
+
 #define MAX_SUPPORTED_SPEED_M_S 10.0
 
 #define MAX_TREADMILL_SPEED_PWM 255
@@ -15,7 +17,7 @@ AF_DCMotor motor(MOTOR_PORT);
 
 static uint8_t current_speed_pwm;
 
-static unsigned long revolutions;
+static volatile unsigned long revolutions;
 
 static unsigned long last_actuator_tick;
 
@@ -27,7 +29,8 @@ static float current_rate;
 
 static void calculate_revolutions_per_minute()
 {
-  // Serial.println(revolutions);
+   if (revolutions > 0) Serial.println(revolutions);
+   revolutions = 0;
 }
 
 static void update_dc_pwm()
@@ -45,6 +48,11 @@ bool supported_measurement(char *measurement)
   return strcmp(measurement, MEASUREMENT_K_HA) == 0x0;
 }
 
+void inc_revolution()
+{
+  revolutions++;
+}
+
 void actuator_setup()
 {
   current_speed_pwm = revolutions = 0;
@@ -52,6 +60,8 @@ void actuator_setup()
   motor.run(FORWARD);
   last_revolution_tick = last_actuator_tick = millis();
   current_speed = current_rate = 0.0;
+  pinMode(PROXIMITY_PORT, INPUT);
+  attachInterrupt(digitalPinToInterrupt(PROXIMITY_PORT), inc_revolution, RISING);
 }
 
 void actuator_set_speed(float speed)
