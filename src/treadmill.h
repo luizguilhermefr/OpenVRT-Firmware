@@ -11,11 +11,17 @@
 
 #define MAX_SUPPORTED_SPEED_M_S 10.0
 
-#define MAX_TREADMILL_SPEED_PWM 255
+#define MIN_PWM 0
+
+#define MAX_PWM 255
+
+#define MAX_RPM 1344
 
 AF_DCMotor motor(MOTOR_PORT);
 
-static uint8_t current_speed_pwm;
+static bool verbose;
+
+static uint8_t pwm;
 
 static volatile unsigned long revolutions;
 
@@ -27,26 +33,30 @@ static float current_speed;
 
 static float current_rate;
 
-static unsigned long rpm;
+static unsigned long current_rpm;
 
 static void calculate_revolutions_per_minute()
 {
-  rpm = revolutions * 6;
+  current_rpm = revolutions * 6;
   revolutions = 0;
-  if (SERIAL_VERBOSE) {
-    Serial.print(rpm);
+  if (verbose) {
+    Serial.print(current_rpm);
     Serial.println(" RPM");
   }
 }
 
 static void update_dc_pwm()
 {
-  uint8_t desired_speed_pwm = (min(current_speed, MAX_SUPPORTED_SPEED_M_S) / MAX_SUPPORTED_SPEED_M_S)
-      * MAX_TREADMILL_SPEED_PWM;
+  uint8_t desired_rpm = (min(current_speed, MAX_SUPPORTED_SPEED_M_S) / MAX_SUPPORTED_SPEED_M_S)
+      * MAX_RPM;
 
-  current_speed_pwm = desired_speed_pwm;
+  if (current_rpm > desired_rpm) {
+    pwm = max(pwm - 1, MIN_PWM);
+  } else if (current_rpm < desired_rpm) {
+    pwm = min(pwm + 1, MAX_PWM);
+  }
 
-  motor.setSpeed(current_speed_pwm);
+  motor.setSpeed(pwm);
 }
 
 bool supported_measurement(char *measurement)
@@ -59,10 +69,12 @@ void inc_revolution()
   revolutions++;
 }
 
-void actuator_setup()
+void actuator_setup(bool _verbose)
 {
-  current_speed_pwm = revolutions = rpm = 0;
-  motor.setSpeed(current_speed_pwm);
+  verbose = _verbose;
+  pwm = MIN_PWM;
+  revolutions = current_rpm = 0;
+  motor.setSpeed(pwm);
   motor.run(FORWARD);
   last_revolution_tick = last_actuator_tick = millis();
   current_speed = current_rate = 0.0;

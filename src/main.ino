@@ -141,7 +141,7 @@ void setup()
 {
   Serial.begin(BAUD_RATE);
   BTSerial.begin(BAUD_RATE);
-  actuator_setup();
+  actuator_setup(SERIAL_VERBOSE);
   current_measurement = (char *) malloc(sizeof(char) * (DATA_LEN + 1));
   strcpy(current_measurement, MEASUREMENT_K_HA);
   last_speed_tick = last_message_tick = millis();
