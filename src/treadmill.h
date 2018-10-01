@@ -3,6 +3,8 @@
 
 #include <AFMotor.h>
 
+#include <PID_v1.h>
+
 #define MEASUREMENT_K_HA "KG_HA"
 
 #define MOTOR_PORT 4
@@ -11,17 +13,25 @@
 
 #define MAX_SUPPORTED_SPEED_M_S 10.0
 
-#define MIN_PWM 0
+#define MIN_PWM 0.0
 
-#define MAX_PWM 255
+#define MAX_PWM 255.0
 
 #define MAX_RPM 1344
+
+#define M2_PER_HA 10000.0
+
+#define MAX_KG_S 5.0
+
+#define PID_KP 1.0
+
+#define PID_KI 0.1
+
+#define PID_KD 0.5
 
 AF_DCMotor motor(MOTOR_PORT);
 
 static bool verbose;
-
-static uint8_t pwm;
 
 static volatile unsigned long revolutions;
 
@@ -29,11 +39,21 @@ static unsigned long last_actuator_tick;
 
 static unsigned long last_revolution_tick;
 
-static float current_speed;
-
-static float current_rate;
-
 static unsigned long current_rpm;
+
+static double current_speed_m_s;
+
+static double desired_kg_ha;
+
+static double desired_kg_m;
+
+static double current_kg_m;
+
+static double current_kg_s;
+
+static double pwm;
+
+PID pid_controller(&current_kg_m, &pwm, &desired_kg_m, PID_KP, PID_KI, PID_KD, DIRECT);
 
 static void calculate_revolutions_per_minute()
 {
@@ -45,17 +65,27 @@ static void calculate_revolutions_per_minute()
   }
 }
 
+static void calculate_desired_kg_per_meter()
+{
+  desired_kg_m = desired_kg_ha / M2_PER_HA;
+}
+
+static void calculate_current_kg_per_second()
+{
+  current_kg_s = (min(current_rpm, MAX_RPM) / MAX_RPM) * MAX_KG_S;
+}
+
+static void calculate_current_kg_per_meter()
+{
+  current_kg_m = current_speed_m_s == 0 ? 0.0 : current_kg_s / current_speed_m_s;
+}
+
 static void update_dc_pwm()
 {
-  uint8_t desired_rpm = (min(current_speed, MAX_SUPPORTED_SPEED_M_S) / MAX_SUPPORTED_SPEED_M_S)
-      * MAX_RPM;
-
-  if (current_rpm > desired_rpm) {
-    pwm = max(pwm - 1, MIN_PWM);
-  } else if (current_rpm < desired_rpm) {
-    pwm = min(pwm + 1, MAX_PWM);
-  }
-
+  calculate_current_kg_per_second();
+  calculate_current_kg_per_meter();
+  calculate_desired_kg_per_meter();
+  pid_controller.Compute();
   motor.setSpeed(pwm);
 }
 
@@ -77,19 +107,20 @@ void actuator_setup(bool _verbose)
   motor.setSpeed(pwm);
   motor.run(FORWARD);
   last_revolution_tick = last_actuator_tick = millis();
-  current_speed = current_rate = 0.0;
+  current_speed_m_s = desired_kg_ha = current_kg_m = current_kg_s = desired_kg_m = 0.0;
   pinMode(PROXIMITY_PORT, INPUT);
   attachInterrupt(digitalPinToInterrupt(PROXIMITY_PORT), inc_revolution, RISING);
+  pid_controller.SetMode(AUTOMATIC);
 }
 
-void actuator_set_speed(float speed)
+void actuator_set_speed(float speed_m_s)
 {
-  current_speed = speed;
+  current_speed_m_s = speed_m_s;
 }
 
-void actuator_set_rate(float rate)
+void actuator_set_rate(float rate_kg_ha)
 {
-  current_rate = rate;
+  desired_kg_ha = rate_kg_ha;
 }
 
 void actuator_loop(unsigned long now_ms)
