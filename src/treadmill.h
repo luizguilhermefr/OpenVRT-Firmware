@@ -27,10 +27,16 @@ static float current_speed;
 
 static float current_rate;
 
+static unsigned long rpm;
+
 static void calculate_revolutions_per_minute()
 {
-   if (revolutions > 0) Serial.println(revolutions);
-   revolutions = 0;
+  rpm = revolutions * 6;
+  revolutions = 0;
+  if (SERIAL_VERBOSE) {
+    Serial.print(rpm);
+    Serial.println(" RPM");
+  }
 }
 
 static void update_dc_pwm()
@@ -55,7 +61,7 @@ void inc_revolution()
 
 void actuator_setup()
 {
-  current_speed_pwm = revolutions = 0;
+  current_speed_pwm = revolutions = rpm = 0;
   motor.setSpeed(current_speed_pwm);
   motor.run(FORWARD);
   last_revolution_tick = last_actuator_tick = millis();
@@ -81,7 +87,7 @@ void actuator_loop(unsigned long now_ms)
     update_dc_pwm();
   }
 
-  if (now_ms - last_revolution_tick > 1000) {
+  if (now_ms - last_revolution_tick > 10000) {
     last_revolution_tick = now_ms;
     calculate_revolutions_per_minute();
   }
