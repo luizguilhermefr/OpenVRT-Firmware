@@ -21,13 +21,13 @@
 
 #define M2_PER_HA 10000.0
 
-#define MAX_KG_S 5.0
+#define MAX_KG_S 1.0
 
-#define PID_KP 1.0
+#define PID_KP 0.0
 
-#define PID_KI 0.1
+#define PID_KI 0.0
 
-#define PID_KD 0.5
+#define PID_KD 0.0
 
 AF_DCMotor motor(MOTOR_PORT);
 
