@@ -1,6 +1,8 @@
 #ifndef OPENVRT_FIRMWARE_TREADMILL_H
 #define OPENVRT_FIRMWARE_TREADMILL_H
 
+#include <float.h>
+
 #include <AFMotor.h>
 
 #include <PID_v1.h>
@@ -23,11 +25,11 @@
 
 #define MAX_KG_S 1.0
 
-#define PID_KP 45.0
+#define PID_KP 150.0
 
 #define PID_KI 25.0
 
-#define PID_KD 2.0
+#define PID_KD 20.0
 
 static bool verbose;
 
@@ -73,7 +75,7 @@ static void calculate_current_kg_per_meter()
   if (current_kg_s == 0) {
     current_kg_m = 0.0;
   } else if (current_speed_m_s == 0) {
-    current_kg_m = INFINITY;
+    current_kg_m = FLT_MAX;
   } else {
     current_kg_m = current_kg_s / current_speed_m_s;
   }
