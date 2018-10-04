@@ -25,11 +25,11 @@
 
 #define MAX_KG_S 1.0
 
-#define PID_KP 180.0
+#define PID_KP 500.0
 
-#define PID_KI 35.0
+#define PID_KI 150.0
 
-#define PID_KD 20.0
+#define PID_KD 50.0
 
 static bool verbose;
 
