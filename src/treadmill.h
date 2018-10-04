@@ -7,6 +7,8 @@
 
 #include <PID_v1.h>
 
+#define ACTUATOR_VERBOSE 1
+
 #define MEASUREMENT_K_HA "KG_HA"
 
 #define MOTOR_PORT 4
@@ -14,8 +16,6 @@
 #define PROXIMITY_PORT 21
 
 #define MAX_SUPPORTED_SPEED_M_S 10.0
-
-#define MIN_PWM 0.0
 
 #define MAX_PWM 255.0
 
@@ -25,9 +25,9 @@
 
 #define MAX_KG_S 1.0
 
-#define PID_KP 150.0
+#define PID_KP 180.0
 
-#define PID_KI 25.0
+#define PID_KI 35.0
 
 #define PID_KD 20.0
 
@@ -53,9 +53,9 @@ static double current_kg_m;
 
 static double current_kg_s;
 
-static double pwm;
+static double current_pwm;
 
-PID pid_controller(&current_kg_m, &pwm, &desired_kg_m, PID_KP, PID_KI, PID_KD, DIRECT);
+PID pid_controller(&current_kg_m, &current_pwm, &desired_kg_m, PID_KP, PID_KI, PID_KD, DIRECT);
 
 AF_DCMotor motor(MOTOR_PORT);
 
@@ -92,7 +92,7 @@ static void update_dc_pwm()
   calculate_current_kg_per_meter();
   calculate_desired_kg_per_meter();
   pid_controller.Compute();
-  motor.setSpeed(pwm);
+  motor.setSpeed(current_pwm);
 }
 
 bool supported_measurement(char *measurement)
@@ -103,20 +103,6 @@ bool supported_measurement(char *measurement)
 void inc_revolution()
 {
   revolutions++;
-}
-
-void actuator_setup(bool _verbose)
-{
-  verbose = _verbose;
-  pwm = MIN_PWM;
-  revolutions = current_rpm = 0;
-  motor.setSpeed(pwm);
-  motor.run(FORWARD);
-  last_revolution_tick = last_actuator_tick = last_verbose_tick = millis();
-  current_speed_m_s = desired_kg_ha = current_kg_m = current_kg_s = desired_kg_m = 0.0;
-  pinMode(PROXIMITY_PORT, INPUT);
-  attachInterrupt(digitalPinToInterrupt(PROXIMITY_PORT), inc_revolution, RISING);
-  pid_controller.SetMode(AUTOMATIC);
 }
 
 void actuator_set_speed(float speed_m_s)
@@ -131,28 +117,38 @@ void actuator_set_rate(float rate_kg_ha)
 
 void print_state()
 {
-  Serial.print("| RPM(");
-  Serial.print(current_rpm);
-  Serial.print(") | SPEED_M_S(");
   Serial.print(current_speed_m_s);
-  Serial.print(") | D_KG_HA(");
+  Serial.print("\t");
   Serial.print(desired_kg_ha);
-  Serial.print(") | D_KG_M(");
+  Serial.print("\t");
   Serial.print(desired_kg_m);
-  Serial.print(") | C_KG_S(");
+  Serial.print("\t");
+  Serial.print(current_rpm);
+  Serial.print("\t");
   Serial.print(current_kg_s);
-  Serial.print(") | C_KG_M(");
+  Serial.print("\t");
   Serial.print(current_kg_m);
-  Serial.print(") | err(");
+  Serial.print("\t");
   Serial.print(current_kg_m - desired_kg_m);
-  Serial.print(") | pwm(");
-  Serial.print(pwm);
-  Serial.println(")");
+  Serial.print("\t");
+  Serial.println(current_pwm);
+}
+
+void actuator_setup()
+{
+  revolutions = current_rpm = current_pwm = 0;
+  motor.setSpeed(current_pwm);
+  motor.run(FORWARD);
+  last_revolution_tick = last_actuator_tick = last_verbose_tick = millis();
+  current_speed_m_s = desired_kg_ha = current_kg_m = current_kg_s = desired_kg_m = 0.0;
+  pinMode(PROXIMITY_PORT, INPUT);
+  attachInterrupt(digitalPinToInterrupt(PROXIMITY_PORT), inc_revolution, RISING);
+  pid_controller.SetMode(AUTOMATIC);
 }
 
 void actuator_loop(unsigned long now_ms)
 {
-  if (now_ms - last_actuator_tick > 100) {
+  if (now_ms - last_actuator_tick > 10) {
     last_actuator_tick = now_ms;
     update_dc_pwm();
   }
@@ -162,7 +158,7 @@ void actuator_loop(unsigned long now_ms)
     calculate_revolutions_per_minute();
   }
 
-  if (verbose && now_ms - last_verbose_tick > 5000) {
+  if (ACTUATOR_VERBOSE && now_ms - last_verbose_tick > 5000) {
     last_verbose_tick = now_ms;
     print_state();
   }

@@ -8,11 +8,15 @@
 
 #define ANALOG_SPEED_PIN A8
 
-#define ANALOG_MAX_SPEED 1000
+#define ANALOG_MAX_SPEED 1000.0
 
 #define SPEED_MAX_M_S 10.0
 
-#define SERIAL_VERBOSE 1
+#define PROTOCOL_VERBOSE 0
+
+#define SPEED_SENSOR_VCOUNT 10
+
+unsigned long speed_sensor_vi;
 
 unsigned long now;
 
@@ -25,7 +29,7 @@ char *current_measurement;
 bool available()
 {
   bool is_available = BTSerial.available() >= MESSAGE_LEN;
-  if (is_available && SERIAL_VERBOSE) Serial.println("MESSAGE RECEIVED.");
+  if (is_available && PROTOCOL_VERBOSE) Serial.println("MESSAGE RECEIVED.");
   return is_available;
 }
 
@@ -50,7 +54,7 @@ void send(openvrt_message_t *msg)
 
 void acknowledge(openvrt_message_t *msg)
 {
-  if (SERIAL_VERBOSE) Serial.println("EMITTING ACKNOWLEDGEMENT.");
+  if (PROTOCOL_VERBOSE) Serial.println("EMITTING ACKNOWLEDGEMENT.");
   openvrt_message_t *res = make_ack(msg->id, ACK_OP);
   send(res);
   free(res);
@@ -58,7 +62,7 @@ void acknowledge(openvrt_message_t *msg)
 
 void refuse(openvrt_message_t *msg)
 {
-  if (SERIAL_VERBOSE) Serial.println("EMITTING REFUSAL.");
+  if (PROTOCOL_VERBOSE) Serial.println("EMITTING REFUSAL.");
   openvrt_message_t *res = make_ack(msg->id, REFUSE_OP);
   send(res);
   free(res);
@@ -80,7 +84,7 @@ void next_rate(char data[DATA_LEN])
   form[DATA_LEN + 2 - 1] = '\0';
   float r = strtod((char *) form, NULL);
   actuator_set_rate(r);
-  if (SERIAL_VERBOSE) {
+  if (PROTOCOL_VERBOSE) {
     Serial.print("NEW RATE IS ");
     Serial.println(r);
   }
@@ -98,7 +102,7 @@ bool next_measurement(char data[DATA_LEN])
 
   if (supported_measurement(desired_measurement)) {
     current_measurement = desired_measurement;
-    if (SERIAL_VERBOSE) {
+    if (PROTOCOL_VERBOSE) {
       Serial.print("NEW MEASUREMENT IS ");
       Serial.println(current_measurement);
     }
@@ -111,7 +115,7 @@ bool next_measurement(char data[DATA_LEN])
 void next_speed()
 {
   int sensorValue = min(analogRead(ANALOG_SPEED_PIN), ANALOG_MAX_SPEED);
-  float s = (sensorValue / (double) ANALOG_MAX_SPEED) * SPEED_MAX_M_S;
+  float s = (sensorValue / ANALOG_MAX_SPEED) * SPEED_MAX_M_S;
   actuator_set_speed(s);
 }
 
@@ -141,7 +145,7 @@ void setup()
 {
   Serial.begin(BAUD_RATE);
   BTSerial.begin(BAUD_RATE);
-  actuator_setup(SERIAL_VERBOSE);
+  actuator_setup();
   current_measurement = (char *) malloc(sizeof(char) * (DATA_LEN + 1));
   strcpy(current_measurement, MEASUREMENT_K_HA);
   last_speed_tick = last_message_tick = millis();
