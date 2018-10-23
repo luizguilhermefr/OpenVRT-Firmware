@@ -61,7 +61,7 @@ AF_DCMotor motor(MOTOR_PORT);
 
 static void calculate_revolutions_per_minute()
 {
-  current_rpm = revolutions * 6;
+  current_rpm = revolutions * 6 * 2;
   revolutions = 0;
 }
 
@@ -153,7 +153,7 @@ void actuator_loop(unsigned long now_ms)
     update_dc_pwm();
   }
 
-  if (now_ms - last_revolution_tick > 10000) {
+  if (now_ms - last_revolution_tick > 5000) {
     last_revolution_tick = now_ms;
     calculate_revolutions_per_minute();
   }
