@@ -1,5 +1,10 @@
 # OpenVRT Firmware
 
+This firmware provide an OpenVRT interface managing a treadmill miniature.
+
+- [Go to site](https://luizguilhermefr.github.io/OpenVRT)
+- [Watch the video](https://www.youtube.com/watch?v=W3I2XYizy-U)
+
 ## Requirements
 
 - Arduino Mega 2560
