@@ -17,6 +17,7 @@
 #define HANDSHAKE 0x2
 #define RATE_SET 0x3
 #define MEASURE_SET 0x4
+#define WORK_WIDTH_SET 0x5
 
 typedef struct message
 {
@@ -46,6 +47,7 @@ bool is_valid_opcode(char opcode)
     case HANDSHAKE:
     case RATE_SET:
     case MEASURE_SET:
+    case WORK_WIDTH_SET:
       return true;
     default:
       return false;

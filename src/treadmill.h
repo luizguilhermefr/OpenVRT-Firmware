@@ -53,6 +53,8 @@ static double current_kg_m;
 
 static double current_kg_s;
 
+static double current_work_width_m;
+
 static double current_pwm;
 
 PID pid_controller(&current_kg_m, &current_pwm, &desired_kg_m, PID_KP, PID_KI, PID_KD, DIRECT);
@@ -77,7 +79,7 @@ static void calculate_current_kg_per_meter()
   } else if (current_speed_m_s == 0) {
     current_kg_m = FLT_MAX;
   } else {
-    current_kg_m = current_kg_s / current_speed_m_s;
+    current_kg_m = (current_kg_s / current_speed_m_s) * current_work_width_m;
   }
 }
 
@@ -91,8 +93,13 @@ static void update_dc_pwm()
   calculate_current_kg_per_second();
   calculate_current_kg_per_meter();
   calculate_desired_kg_per_meter();
-  pid_controller.Compute();
-  motor.setSpeed(current_pwm);
+
+  if (current_speed_m_s > 0) {
+    pid_controller.Compute();
+    motor.setSpeed(current_pwm);
+  } else {
+    motor.setSpeed(0);
+  }
 }
 
 bool supported_measurement(char *measurement)
@@ -115,9 +122,16 @@ void actuator_set_rate(float rate_kg_ha)
   desired_kg_ha = rate_kg_ha;
 }
 
+void actuator_set_work_width(float work_width_m)
+{
+  current_work_width_m = work_width_m;
+}
+
 void print_state()
 {
   Serial.print(current_speed_m_s);
+  Serial.print("\t");
+  Serial.println(current_work_width_m);
   Serial.print("\t");
   Serial.print(desired_kg_ha);
   Serial.print("\t");
@@ -141,6 +155,7 @@ void actuator_setup()
   motor.run(FORWARD);
   last_revolution_tick = last_actuator_tick = last_verbose_tick = millis();
   current_speed_m_s = desired_kg_ha = current_kg_m = current_kg_s = desired_kg_m = 0.0;
+  current_work_width_m = 1.0;
   pinMode(PROXIMITY_PORT, INPUT);
   attachInterrupt(digitalPinToInterrupt(PROXIMITY_PORT), inc_revolution, RISING);
   pid_controller.SetMode(AUTOMATIC);

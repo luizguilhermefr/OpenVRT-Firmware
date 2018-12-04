@@ -90,6 +90,21 @@ void next_rate(char data[DATA_LEN])
   }
 }
 
+void next_work_width(char data[DATA_LEN])
+{
+  char form[DATA_LEN + 2];
+  for (int i = 0; i < DATA_LEN - 2; i++) { form[i] = data[i]; }
+  form[DATA_LEN - 2] = '.';
+  for (int i = DATA_LEN - 2; i < DATA_LEN; i++) { form[i + 1] = data[i]; }
+  form[DATA_LEN + 2 - 1] = '\0';
+  float ww = strtod((char *) form, NULL);
+  actuator_set_work_width(ww);
+  if (PROTOCOL_VERBOSE) {
+    Serial.print("NEW WORK WIDTH IS ");
+    Serial.println(ww);
+  }
+}
+
 bool next_measurement(char data[DATA_LEN])
 {
   char *desired_measurement = (char *) malloc(sizeof(char) * (DATA_LEN + 1));
@@ -132,6 +147,9 @@ void next_message()
         case MEASURE_SET:
           next_measurement(msg->data) ? acknowledge(msg) : refuse(msg);
           break;
+        case WORK_WIDTH_SET:
+          next_work_width(msg->data);
+          acknowledge(msg);
         case HANDSHAKE:
           acknowledge(msg);
       }
