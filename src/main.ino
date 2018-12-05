@@ -83,11 +83,15 @@ void next_rate(char data[DATA_LEN])
   for (int i = DATA_LEN - 2; i < DATA_LEN; i++) { form[i + 1] = data[i]; }
   form[DATA_LEN + 2 - 1] = '\0';
   float r = strtod((char *) form, NULL);
+  if (r < 0) {
+    return false;
+  }
   actuator_set_rate(r);
   if (PROTOCOL_VERBOSE) {
     Serial.print("NEW RATE IS ");
     Serial.println(r);
   }
+  return true;
 }
 
 void next_work_width(char data[DATA_LEN])
@@ -98,11 +102,15 @@ void next_work_width(char data[DATA_LEN])
   for (int i = DATA_LEN - 2; i < DATA_LEN; i++) { form[i + 1] = data[i]; }
   form[DATA_LEN + 2 - 1] = '\0';
   float ww = strtod((char *) form, NULL);
+  if (ww <= 0) {
+    return false;
+  }
   actuator_set_work_width(ww);
   if (PROTOCOL_VERBOSE) {
     Serial.print("NEW WORK WIDTH IS ");
     Serial.println(ww);
   }
+  return true;
 }
 
 bool next_measurement(char data[DATA_LEN])
@@ -141,15 +149,13 @@ void next_message()
     if (is_valid_message(msg)) {
       switch (msg->opcode) {
         case RATE_SET:
-          next_rate(msg->data);
-          acknowledge(msg);
+          next_rate(msg->data) ? acknowledge(msg) : refuse(msg);
           break;
         case MEASURE_SET:
           next_measurement(msg->data) ? acknowledge(msg) : refuse(msg);
           break;
         case WORK_WIDTH_SET:
-          next_work_width(msg->data);
-          acknowledge(msg);
+          next_work_width(msg->data) ? acknowledge(msg) : refuse(msg);
         case HANDSHAKE:
           acknowledge(msg);
       }

@@ -79,7 +79,7 @@ static void calculate_current_kg_per_meter()
   } else if (current_speed_m_s == 0) {
     current_kg_m = FLT_MAX;
   } else {
-    current_kg_m = (current_kg_s / current_speed_m_s) * current_work_width_m;
+    current_kg_m = (current_kg_s * current_work_width_m) / current_speed_m_s;
   }
 }
 
